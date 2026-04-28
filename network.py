@@ -1,4 +1,19 @@
 import socket
+        
+
+# network_scan()    → scans ports on those devices
+def network_scan(base_ip, port_range):
+    results = {}
+
+    for i in range(1, 255):
+        ip = f"{base_ip}.{i}"
+
+        ports = scan(ip, port_range)
+
+        if ports:  # host exists
+            results[ip] = ports
+
+    return results
 
 
 #function to create ipv6 and ipv4 addresses
@@ -9,21 +24,20 @@ def create_socket(ip):
         return socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     
     
-    #function to receive banner from ports
 def get_banner(ip, port):
     s = None
     try:
         s = create_socket(ip)
+        s.settimeout(1)
 
         if ":" in ip:
-            s.connect((ip, port, 0, 0))
+            res = s.connect_ex((ip, port, 0, 0))
         else:
-            s.connect((ip, port))
-        s.settimeout(1)
-        if ":" in ip:
-            s.connect((ip, port, 0, 0))  # IPv6
-        else:
-            s.connect((ip, port))        # IPv4
+            res = s.connect_ex((ip, port))
+
+        # ❗ IMPORTANT: check connection success
+        if res != 0:
+            return None
 
         # Try immediate banner
         try:
@@ -50,6 +64,7 @@ def get_banner(ip, port):
     finally:
         if s:
             s.close()
+
 
 
 #function to scan the ports

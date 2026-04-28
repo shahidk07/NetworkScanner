@@ -3,7 +3,8 @@ from urllib.parse import urlparse, parse_qs
 import json
 import os
 
-from network import scan
+from network import scan, network_scan
+
 
 class Handler(SimpleHTTPRequestHandler):
 
@@ -17,7 +18,13 @@ class Handler(SimpleHTTPRequestHandler):
             ip = params.get("ip", [""])[0]
             port_range = int(params.get("range", [100])[0])
 
-            result = scan(ip, port_range)
+            mode = params.get("mode", ["single"])[0]
+
+            if mode == "network":
+                base_ip = ".".join(ip.split(".")[:3])  # e.g. 192.168.1
+                result = network_scan(base_ip, port_range)
+            else:
+                result = scan(ip, port_range)
 
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
