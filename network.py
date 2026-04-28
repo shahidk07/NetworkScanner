@@ -1,116 +1,75 @@
 import socket
 
-'''def banner_parser(banner):
-    result = {
-        "protocol": "unknown",
-        "service": "unknown"
-    }
 
-    if not banner:
-        return result
-
-    b = banner.lower()
-
-    # 🔹 HTTP detection
-    if "http" in b:
-        result["protocol"] = "HTTP"
-
-        if "express" in b or "node" in b:
-            result["service"] = "Node.js Server"
-        elif "python" in b:
-            result["service"] = "Python HTTP Server"
-        elif "apache" in b:
-            result["service"] = "Apache"
-        elif "nginx" in b:
-            result["service"] = "Nginx"
-        else:
-            result["service"] = "HTTP Server"
-
-    # 🔹 SSH detection
-    elif "ssh" in b:
-        result["protocol"] = "SSH"
-
-        if "openssh" in b:
-            result["service"] = "OpenSSH"
-        else:
-            result["service"] = "SSH Server"
-
-    # 🔹 FTP detection
-    elif "ftp" in b:
-        result["protocol"] = "FTP"
-        result["service"] = "FTP Server"
-
-    # 🔹 MySQL detection
-    elif "mysql" in b:
-        result["protocol"] = "SQL"
-        result["service"] = "MySQL"
-
-    # 🔹 MongoDB (no banner usually → fallback by hint)
-    elif "mongo" in b:
-        result["protocol"] = "Database"
-        result["service"] = "MongoDB"
-
-    return result
-'''
-#function for getting a banner which includes protocol name and sometimes app name
-def get_banner(ip,port):
-    s=None
+#function to create ipv6 and ipv4 addresses
+def create_socket(ip):
+    if ":" in ip:  # IPv6 detection
+        return socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
+    else:
+        return socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    
+    
+    #function to receive banner from ports
+def get_banner(ip, port):
+    s = None
     try:
-        s=socket.socket()
+        s = create_socket(ip)
+
+        if ":" in ip:
+            s.connect((ip, port, 0, 0))
+        else:
+            s.connect((ip, port))
         s.settimeout(1)
-        s.connect((ip,port))
+        if ":" in ip:
+            s.connect((ip, port, 0, 0))  # IPv6
+        else:
+            s.connect((ip, port))        # IPv4
+
+        # Try immediate banner
         try:
-            banner=s.recv(1024).decode(errors="ignore")
+            banner = s.recv(1024).decode(errors="ignore")
             if banner:
                 return banner.strip()
         except:
             pass
-    
+
+        # Try HTTP request
         try:
-            #b means text represents sequence of bytes 
             s.send(b"GET / HTTP/1.0\r\n\r\n")
-            banner=s.recv(1024).decode(errors="ignore")
-            return banner.strip()
+            banner = s.recv(1024).decode(errors="ignore")
+            if banner:
+                return banner.strip()
         except:
             pass
-        
-        return "unknown"
+
+        return None
+
     except:
-        return "unknown"
-    
+        return None
+
     finally:
-        s.close()
-            
-        
-def scanIP():
-    targetIP = input("Enter the IP address you want to scan:")
-    scanRange = int(input("Enter the range of ports for scanning:"))
+        if s:
+            s.close()
 
-    count = 0
-    services = {}
 
-    for port in range(scanRange):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.settimeout(0.5)
+#function to scan the ports
+def scan(ip, port_range):
+    results = {}
+
+    for port in range(port_range):
+        s = create_socket(ip)
+        s.settimeout(0.3)
 
         try:
-            s.connect((targetIP, port))
-            count += 1
-
-
-             #service_info=banner_parser(get_banner(targetIP, port))
-            service_info=get_banner(targetIP, port)
-            services[port] = service_info
-
+            if s.connect_ex((ip, port)) == 0:
+                banner = get_banner(ip, port)
+                
+                from banner_parser import banner_parser
+                parsed = banner_parser(banner, port)
+                results[port] = parsed
         except:
             pass
         finally:
             s.close()
 
-    print("total open ports:", count)
-
-    for port in services:
-        print(port, ":", services[port])
-
-
-scanIP()
+    return results

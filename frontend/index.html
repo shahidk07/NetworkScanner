@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>NetScan</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>⚡ NetScan</h1>
+        <div>
+            <label>
+                <input type="radio" name="iptype" value="ipv4" checked> IPv4
+            </label>
+            <label>
+                <input type="radio" name="iptype" value="ipv6"> IPv6
+            </label>
+        </div>
+        <div class="input-box">
+            <input type="text" id="ip" placeholder="Enter IP address">
+            <input type="number" id="range" placeholder="Port range (e.g. 1000)">
+            <button onclick="scan()">Scan</button>
+        </div>
+
+        <div id="status"></div>
+
+        <table id="result-table">
+            <thead>
+                <tr>
+                    <th>Port</th>
+                    <th>Protocol</th>
+                    <th>Service</th>
+                </tr>
+            </thead>
+            <tbody id="results"></tbody>
+        </table>
+
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
